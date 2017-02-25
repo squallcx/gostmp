@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"html/template"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"runtime"
@@ -16,6 +14,8 @@ import (
 	"github.com/gleez/smtpd/data"
 	"github.com/gleez/smtpd/log"
 
+	"github.com/boltdb/bolt"
+	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -146,16 +146,23 @@ func MailList(w http.ResponseWriter, r *http.Request, ctx *Context) (err error) 
 	}
 }
 
-func Home(w http.ResponseWriter, r *http.Request, ctx *Context) (err error) {
-	greeting, err := ioutil.ReadFile(config.GetWebConfig().GreetingFile)
+func Home(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	db, err := bolt.Open("my.db", 0600, nil)
 	if err != nil {
-		fmt.Errorf("Failed to load greeting: %v", err)
+		log.LogError(err.Error())
 	}
-
-	return RenderTemplate("root/index.html", w, map[string]interface{}{
-		"ctx":      ctx,
-		"greeting": template.HTML(string(greeting)),
+	defer db.Close()
+	foo := ""
+	err = db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("code"))
+		v := b.Get([]byte(vars["user"]))
+		foo = string(v)
+		return nil
 	})
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"Code":"%v"}`, foo)
+
 }
 
 func LoginForm(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {

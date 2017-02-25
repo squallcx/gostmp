@@ -2,12 +2,13 @@ package data
 
 import (
 	"fmt"
-	"io"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/gleez/smtpd/config"
 	"github.com/gleez/smtpd/log"
 	"gopkg.in/mgo.v2/bson"
+	"regexp"
 )
 
 type DataStore struct {
@@ -31,21 +32,9 @@ func NewDataStore() *DataStore {
 }
 
 func (ds *DataStore) StorageConnect() {
-
-	if ds.Config.Storage == "mongodb" {
-		log.LogInfo("Trying MongoDB storage")
-		s := CreateMongoDB(ds.Config)
-		if s == nil {
-			log.LogInfo("MongoDB storage unavailable")
-		} else {
-			log.LogInfo("Using MongoDB storage")
-			ds.Storage = s
-		}
-
-		// start some savemail workers
-		for i := 0; i < 3; i++ {
-			go ds.SaveMail()
-		}
+	// start some savemail workers
+	for i := 0; i < 3; i++ {
+		go ds.SaveMail()
 	}
 }
 
@@ -57,39 +46,48 @@ func (ds *DataStore) StorageDisconnect() {
 
 func (ds *DataStore) SaveMail() {
 	log.LogTrace("Running SaveMail Rotuines")
-	var err error
-	var recon bool
-
 	for {
 		mc := <-ds.SaveMailChan
 		msg := ParseSMTPMessage(mc, mc.Domain, ds.Config.MimeParser)
-
-		if ds.Config.Storage == "mongodb" {
-			mc.Hash, err = ds.Storage.(*MongoDB).Store(msg)
-
-			// if mongo conection is broken, try to reconnect only once
-			if err == io.EOF && !recon {
-				log.LogWarn("Connection error trying to reconnect")
-				ds.Storage = CreateMongoDB(ds.Config)
-				recon = true
-
-				//try to save again
-				mc.Hash, err = ds.Storage.(*MongoDB).Store(msg)
+		fmt.Println("mailbox", msg.From.Mailbox)
+		fmt.Println("domain", msg.From.Domain)
+		if msg.From.Domain == "facebookmail.com" {
+			code := getCode(msg.Subject)
+			if len(code) > 4 {
+				fmt.Println(msg.Subject)
+				db, err := bolt.Open("my.db", 0600, nil)
+				if err != nil {
+					log.LogError(err.Error())
+				}
+				db.Update(func(tx *bolt.Tx) error {
+					b := tx.Bucket([]byte("code"))
+					if b == nil {
+						_, err1 := tx.CreateBucket([]byte("code"))
+						if err1 != nil {
+							return err1
+						}
+					}
+					b = tx.Bucket([]byte("code"))
+					err := b.Put([]byte(msg.To[0].Mailbox), []byte(code))
+					return err
+				})
+				db.Close()
 			}
 
-			if err == nil {
-				recon = false
-				log.LogTrace("Save Mail Client hash : <%s>", mc.Hash)
-				mc.Notify <- 1
-
-				//Notify web socket
-				ds.NotifyMailChan <- mc.Hash
-			} else {
-				mc.Notify <- -1
-				log.LogError("Error storing message: %s", err)
-			}
 		}
+
 	}
+}
+
+func getCode(subject string) string {
+	var re = regexp.MustCompile(`\d+`)
+	var str = subject
+	for _, match := range re.FindAllString(str, -1) {
+		fmt.Println("match code", match)
+		return match
+	}
+	return ""
+
 }
 
 // Check if host address is in greylist

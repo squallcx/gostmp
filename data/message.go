@@ -317,17 +317,18 @@ func Partbuf(reader io.Reader) (int64, []byte, error) {
 // eg. =?ISO-2022-JP?B?GyRCIVo9dztSOWJAOCVBJWMbKEI=?=
 func MimeHeaderDecode(str string) string {
 	//str, err := mail.DecodeRFC2047Word(str)
-	str, charset, err := quotedprintable.DecodeHeader(str)
+	str, charset, _ := quotedprintable.DecodeHeader(str)
 	charset = strings.ToUpper(charset)
+	fmt.Println(str)
 
-	if err == nil && charset != "UTF-8" {
-		charset = fixCharset(charset)
-		// eg. charset can be "ISO-2022-JP"
-		convstr, err := iconv.Conv(str, "UTF-8", charset)
-		if err == nil {
-			return convstr
-		}
-	}
+	// if err == nil && charset != "UTF-8" {
+	// 	charset = fixCharset(charset)
+	// 	// eg. charset can be "ISO-2022-JP"
+	// 	convstr, err := iconv.Conv(str, "UTF-8", charset)
+	// 	if err == nil {
+	// 		return convstr
+	// 	}
+	// }
 
 	return str
 }

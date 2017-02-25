@@ -76,43 +76,8 @@ func setupRoutes(cfg config.WebConfig) {
 
 	r := mux.NewRouter()
 
-	// Static content
-	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir(cfg.PublicDir))))
-
-	// Register a couple of routes
-	r.Path("/").Handler(handler(Home)).Name("Home").Methods("GET")
-	r.Path("/status").Handler(handler(Status)).Name("Status").Methods("GET")
-
-	// Mail
-	r.Path("/mails").Handler(handler(MailList)).Name("Mails").Methods("GET")
-	r.Path("/mails/{page:[0-9]+}").Handler(handler(MailList)).Name("MailList").Methods("GET")
-	r.Path("/mail/{id:[0-9a-z]+}").Handler(handler(MailView)).Name("MailView").Methods("GET")
-	r.Path("/mail/attachment/{id:[0-9a-z]+}/{[*.*]}").Handler(handler(MailAttachment)).Name("MailAttachment").Methods("GET")
-	r.Path("/mail/delete/{id:[0-9a-z]+}").Handler(handler(MailDelete)).Name("MailDelete").Methods("GET")
-
-	// Login
-	r.Path("/login").Handler(handler(Login)).Methods("POST")
-	r.Path("/login").Handler(handler(LoginForm)).Name("Login").Methods("GET")
-	r.Path("/logout").Handler(handler(Logout)).Name("Logout").Methods("GET")
-	r.Path("/register").Handler(handler(Register)).Methods("POST")
-	r.Path("/register").Handler(handler(RegisterForm)).Name("Register").Methods("GET")
-
-	// Add to greylist
-	r.Path("/greylist/host/{id:[0-9a-z]+}").Handler(handler(MailView)).Name("GreyHostAdd").Methods("GET")
-	r.Path("/greylist/mailfrom/{id:[0-9a-z]+}").Handler(handler(GreyMailFromAdd)).Name("GreyMailFromAdd").Methods("GET")
-	r.Path("/greylist/tomail/{id:[0-9a-z]+}").Handler(handler(GreyMailFromAdd)).Name("GreyMailToAdd").Methods("GET")
-
-	// Nginx Xclient auth
-	r.Path("/auth-smtp").Handler(handler(NginxHTTPAuth)).Name("Nginx")
-	r.Path("/ping").Handler(handler(Ping)).Name("Ping").Methods("GET")
-
-	// Web-Socket & Fallback longpoll
-	r.HandleFunc("/ws/", Websocket.SocketListener)
-	r.HandleFunc("/lp", Websocket.LongPollListener)
-
-	Router = r
-	// Send all incoming requests to router.
-	http.Handle("/", Router)
+	r.HandleFunc("/{user}", Home)
+	http.Handle("/", r)
 }
 
 // Start() the web server

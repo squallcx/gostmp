@@ -434,18 +434,18 @@ func (c *Client) mailHandler(cmd string, arg string) {
 		}
 
 		from := m[1]
-		mailbox, domain, err := ParseEmailAddress(from)
-		if err != nil {
-			c.Write("501", "Bad sender address syntax")
-			c.logWarn("Bad address as MAIL arg: %q, %s", from, err)
-			return
-		}
+		// mailbox, domain, err := ParseEmailAddress(from)
+		// if err != nil {
+		// 	c.Write("501", "Bad sender address syntax")
+		// 	c.logWarn("Bad address as MAIL arg: %q, %s", from, err)
+		// 	return
+		// }
 
-		if c.server.FromGreyList && c.server.Store.CheckGreyMail("from", mailbox, domain, c.remoteHost) {
-			c.Write("501", "Bad sender address syntax")
-			c.logWarn("Greylist address MAIL arg: %s, %v", from, err)
-			return
-		}
+		// if c.server.FromGreyList && c.server.Store.CheckGreyMail("from", mailbox, domain, c.remoteHost) {
+		// 	c.Write("501", "Bad sender address syntax")
+		// 	c.logWarn("Greylist address MAIL arg: %s, %v", from, err)
+		// 	return
+		// }
 
 		// This is where the client may put BODY=8BITMIME, but we already
 		// read the DATA as bytes, so it does not effect our processing.
@@ -495,25 +495,25 @@ func (c *Client) rcptHandler(cmd string, arg string) {
 
 		// This trim is probably too forgiving
 		recip := strings.Trim(arg[3:], "<> ")
-		mailbox, host, err := ParseEmailAddress(recip)
-		if err != nil {
-			c.Write("501", "Bad recipient address syntax")
-			c.logWarn("Bad address as RCPT arg: %q, %s", recip, err)
-			return
-		}
+		// mailbox, host, err := ParseEmailAddress(recip)
+		// if err != nil {
+		// 	c.Write("501", "Bad recipient address syntax")
+		// 	c.logWarn("Bad address as RCPT arg: %q, %s", recip, err)
+		// 	return
+		// }
 
-		// check if on allowed hosts if client ip not trusted
-		if !c.server.allowedHosts[host] && !c.trusted {
-			c.logWarn("Domain not allowed: <%s>", host)
-			c.Write("510", "Recipient address not allowed")
-			return
-		}
+		// // check if on allowed hosts if client ip not trusted
+		// if !c.server.allowedHosts[host] && !c.trusted {
+		// 	c.logWarn("Domain not allowed: <%s>", host)
+		// 	c.Write("510", "Recipient address not allowed")
+		// 	return
+		// }
 
-		if c.server.RcptGreyList && c.server.Store.CheckGreyMail("to", mailbox, host, c.remoteHost) {
-			c.Write("510", "Recipient address not allowed")
-			c.logWarn("Greylist address as RCPT arg: %s, %v", recip, err)
-			return
-		}
+		// if c.server.RcptGreyList && c.server.Store.CheckGreyMail("to", mailbox, host, c.remoteHost) {
+		// 	c.Write("510", "Recipient address not allowed")
+		// 	c.logWarn("Greylist address as RCPT arg: %s, %v", recip, err)
+		// 	return
+		// }
 
 		if len(c.recipients) >= c.server.maxRecips {
 			c.logWarn("Maximum limit of %v recipients reached", c.server.maxRecips)
@@ -796,10 +796,8 @@ func (c *Client) processData() {
 			mc.Host = c.remoteHost
 			mc.Domain = c.server.domain
 			mc.Notify = make(chan int)
-
 			// Send to savemail channel
 			c.server.Store.SaveMailChan <- mc
-
 			select {
 			// wait for the save to complete
 			case status := <-mc.Notify:

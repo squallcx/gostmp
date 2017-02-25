@@ -30,7 +30,7 @@ var (
 	help       = flag.Bool("help", false, "Displays this help")
 	pidfile    = flag.String("pidfile", "none", "Write our PID into the specified file")
 	logfile    = flag.String("logfile", "stderr", "Write out log into the specified file")
-	configfile = flag.String("config", "/etc/smtpd.conf", "Path to the configuration file")
+	configfile = flag.String("config", "etc/smtpd.conf", "Path to the configuration file")
 
 	// startTime is used to calculate uptime of Smtpd
 	startTime = time.Now()
